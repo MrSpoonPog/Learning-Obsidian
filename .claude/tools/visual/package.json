@@ -1,0 +1,12 @@
+{
+  "name": "visual",
+  "version": "1.0.0",
+  "description": "Local render toolchain for lesson diagrams — mermaid-cli plus an SVG rasteriser.",
+  "private": true,
+  "license": "ISC",
+  "type": "commonjs",
+  "dependencies": {
+    "@mermaid-js/mermaid-cli": "^11.16.0",
+    "puppeteer": "^25.9.0"
+  }
+}

@@ -1,0 +1,8 @@
+node_modules/
+.claude/tools/visual/scratch/
+.obsidian/
+.claude/settings.local.json
+
+# Upstream reference clone — not part of this repo. Restore with:
+#   git clone https://github.com/amosblomqvist/learn.git .pi
+.pi/
