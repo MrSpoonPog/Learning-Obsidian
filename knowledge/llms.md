@@ -86,4 +86,3 @@ For when rag/emb/agent/ctx/rlhf/und are taught, key misconceptions to use as dis
 Also flagged as must-know-but-shallow: prompt→context engineering shift, scaling laws (term only), benchmark contamination (term only). Not full nodes — one-sentence mentions when relevant.
 
 Gaps to verify before teaching: open vs. closed models landscape (2026 specifics not researched), current capabilities/limitations snapshot (short half-life, research close to when taught).
-test line

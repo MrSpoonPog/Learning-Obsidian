@@ -1,0 +1,16 @@
+{
+  "hooks": {
+    "SessionEnd": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node .claude/tools/sync/session-end.mjs",
+            "timeout": 30,
+            "statusMessage": "Auto-syncing learning session to GitHub..."
+          }
+        ]
+      }
+    ]
+  }
+}
