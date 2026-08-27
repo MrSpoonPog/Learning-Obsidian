@@ -16,7 +16,9 @@ Run `setup.cmd` (double-click it). Idempotent — safe to re-run any time. It ch
 | `.claude/skills/visualize/` | Adds a diagram to a lesson when a picture genuinely helps |
 | `.claude/agents/` | `researcher` (fact-checking, topic scoping), `mermaid-maker`, `svg-maker` |
 | `.claude/tools/visual/` | Local render toolchain — mermaid-cli + `svg2png.mjs` (puppeteer) |
+| `.claude/tools/dashboard/generate.mjs` | Builds the `Frontier` dashboard HTML from `knowledge/*.md` + `knowledge/_activity.jsonl`. Run + republish as an Artifact at the end of every `/learn` and `/review` session — see **Dashboard** below |
 | `knowledge/<topic>.md` | **State.** Dependency DAG, node statuses, misconceptions, due dates |
+| `knowledge/_activity.jsonl` | One line per session: `{"date","topic","type","interactions"}`. Feeds the dashboard's heatmap/streaks. Leading `_` excludes it from the topic scan |
 | `lessons/<date>-<topic>.md` | **Prose.** The lesson itself, for him to re-read in Obsidian |
 | `viz/` | Rendered diagrams, embedded by the lesson logs |
 | `.pi/` | Upstream `amosblomqvist/learn` clone. **Reference only — never live config.** `git -C .pi pull` to see upstream changes |
@@ -25,6 +27,26 @@ Run `setup.cmd` (double-click it). Idempotent — safe to re-run any time. It ch
 
 - `/learn <topic>` — start or resume a teaching session
 - `/review [topic]` — re-test what's due
+
+## Dashboard
+
+Live at **https://claude.ai/code/artifact/fd45d4df-e3c7-47d1-b465-a953178825c8** ("Frontier") — private, bookmark it on any device. It shows every topic's node counts (solid/landed/frontier/misconception), next review due date, and a GitHub-style activity heatmap.
+
+**Regenerate it at the end of every `/learn` and `/review` session:**
+1. Append one line to `knowledge/_activity.jsonl`: `{"date":"<today>","topic":"<slug>","type":"learn|review","interactions":<count of AskUserQuestion calls this session>}`
+2. `node .claude/tools/dashboard/generate.mjs --out <scratchpad-path>/frontier.html`
+3. Publish with the `Artifact` tool, passing `url: "https://claude.ai/code/artifact/fd45d4df-e3c7-47d1-b465-a953178825c8"` so it updates in place rather than creating a new one.
+
+## Cross-device access
+
+The repo has a private GitHub remote (`MrSpoonPog/john-learning`) — that's the sync backbone for all three surfaces:
+
+- **Laptop** — clone the repo, run `setup.cmd`. Full native Claude Code CLI + Obsidian desktop.
+- **Phone/tablet, running `/learn` or `/review`** — open **claude.ai/code** in the mobile browser, connect it to the `MrSpoonPog/john-learning` GitHub repo. Same slash commands, same skills, same knowledge files — no separate install. Push/pull to keep the repo in sync with what the laptop last did.
+- **Phone/tablet, reading lesson prose** (rendered markdown/LaTeX/mermaid) — Obsidian mobile + the community **Obsidian Git** plugin, pointed at the same GitHub repo. Pull before reading, push if edited on mobile. Free, and renders exactly like the desktop vault.
+- **Dashboard** — the `Frontier` Artifact link above works from any device's browser, no login-to-repo needed.
+
+**Keep the remote in sync**: since sessions on different devices all read/write `knowledge/` and `lessons/`, commit and push at the end of a session before switching devices, and pull before starting one — otherwise a session on a second device works from a stale knowledge state.
 
 ## Standing rules
 

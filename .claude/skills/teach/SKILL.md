@@ -155,6 +155,7 @@ Before ending the session:
 1. Update `knowledge/<topic-slug>.md` — node statuses, any misconceptions in **his own phrasing with the context they appeared in**, and the review queue.
 2. Schedule review: **+1 day, +1 week, +3 weeks**, uniform. Don't invent expanding schedules — expanding vs uniform is g = 0.034, ns. Compress the whole ladder if his horizon is short.
 3. Tell him when `/review` is due. Spacing is g = 0.74 — one of the two largest levers in this system, and it does nothing unless he actually comes back.
+4. Append one line to `knowledge/_activity.jsonl` (date, topic slug, `"type":"learn"`, and interactions = count of `AskUserQuestion` calls this session), then regenerate and republish the dashboard — see **Dashboard** in `CLAUDE.md`.
 
 **Do not optimize for how well he feels it went.** Learners reliably rate the *less* effective condition as more effective — fluency during teaching feels like learning and isn't. Trust the delayed re-test, not the vibe.
 

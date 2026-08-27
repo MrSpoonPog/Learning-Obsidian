@@ -117,6 +117,10 @@ Rewrite the node rows: status, last tested, new due date. Add any new misconcept
 
 Do this before ending the session, not from memory later.
 
+### 7. Log activity and refresh the dashboard
+
+Append one line to `knowledge/_activity.jsonl` (date, topic slug, `"type":"review"`, and interactions = count of `AskUserQuestion` calls this session), then regenerate and republish the dashboard — see **Dashboard** in `CLAUDE.md`.
+
 ---
 
 ## What not to do
