@@ -1,15 +1,15 @@
 #!/usr/bin/env node
-// Generates the self-contained "Frontier" dashboard HTML from knowledge/*.md + knowledge/_activity.jsonl.
+// Generates the self-contained "Frontier" dashboard HTML from knowledge/*.md + knowledge/_activity.jsonl,
+// and always also writes an Obsidian-native markdown companion (Dashboard.md at repo root).
 // Usage: node generate.mjs --out <path> [--now YYYY-MM-DD]
 
-import { readdirSync, readFileSync, existsSync, writeFileSync } from "node:fs";
+import { writeFileSync } from "node:fs";
 import { join, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
+import { loadTopics, loadActivity, readDashboardUrl } from "./lib.mjs";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const ROOT = join(__dirname, "..", "..", "..");
-const KNOWLEDGE_DIR = join(ROOT, "knowledge");
-const ACTIVITY_LOG = join(KNOWLEDGE_DIR, "_activity.jsonl");
 
 function arg(name, fallback) {
   const i = process.argv.indexOf(`--${name}`);
@@ -23,98 +23,10 @@ if (!OUT) {
 }
 const NOW = arg("now") ? new Date(arg("now") + "T00:00:00") : new Date();
 const todayStr = NOW.toISOString().slice(0, 10);
+const DASHBOARD_URL = readDashboardUrl(ROOT);
 
-// ---------- parse knowledge/*.md ----------
-
-function parseTopic(filePath) {
-  const raw = readFileSync(filePath, "utf-8");
-  const lines = raw.split(/\r?\n/);
-
-  const titleLine = lines.find((l) => l.startsWith("# "));
-  const title = titleLine ? titleLine.replace(/^#\s*/, "").trim() : filePath;
-
-  const goalLine = lines.find((l) => /^Goal:/.test(l.trim()));
-  const goal = goalLine ? goalLine.trim().replace(/^Goal:\s*/, "") : "";
-
-  const horizonMatch = raw.match(/Retention horizon:\s*\*\*(.*?)\*\*/);
-  const horizon = horizonMatch ? horizonMatch[1] : "";
-
-  // Section slicer: from a "## Heading" line to the next "## " line (or EOF)
-  function section(heading) {
-    const startIdx = lines.findIndex((l) => l.trim().toLowerCase() === `## ${heading}`.toLowerCase());
-    if (startIdx === -1) return [];
-    const rest = lines.slice(startIdx + 1);
-    const endIdx = rest.findIndex((l) => /^##\s/.test(l));
-    return endIdx === -1 ? rest : rest.slice(0, endIdx);
-  }
-
-  // Review queue: any "- **YYYY-MM-DD**" line anywhere in the file
-  const dueDates = [...raw.matchAll(/-\s*\*\*(\d{4}-\d{2}-\d{2})\*\*/g)].map((m) => m[1]).sort();
-
-  // Node status section: count node ids per status marker
-  const statusLines = section("node status");
-  const counts = { solid: 0, landed: 0, frontier: 0, misconception: 0 };
-  const statusMap = { "[x]": "solid", "[~]": "landed", "[ ]": "frontier", "[!]": "misconception" };
-  for (const line of statusLines) {
-    const m = line.match(/^-\s*(\[[x~ !]\])\s+([^—-]+?)\s*[—-]/);
-    if (!m) continue;
-    const key = statusMap[m[1]];
-    if (!key) continue;
-    const ids = m[2].split(",").map((s) => s.trim()).filter(Boolean);
-    counts[key] += ids.length || 1;
-  }
-
-  const misconceptionLog = section("misconceptions log").filter((l) => l.trim().startsWith("- ["));
-
-  const total = counts.solid + counts.landed + counts.frontier + counts.misconception;
-
-  const upcoming = dueDates.filter((d) => d >= todayStr);
-  const overdue = dueDates.filter((d) => d < todayStr);
-  const nextDue = upcoming[0] || null;
-  const daysUntil = nextDue
-    ? Math.round((new Date(nextDue) - new Date(todayStr)) / 86400000)
-    : null;
-
-  return {
-    slug: filePath.split(/[/\\]/).pop().replace(/\.md$/, ""),
-    title,
-    goal,
-    horizon,
-    counts,
-    total,
-    misconceptionLogCount: misconceptionLog.length,
-    dueDates,
-    nextDue,
-    daysUntil,
-    overdueCount: overdue.length,
-  };
-}
-
-let topics = [];
-if (existsSync(KNOWLEDGE_DIR)) {
-  const files = readdirSync(KNOWLEDGE_DIR).filter((f) => f.endsWith(".md") && !f.startsWith("_"));
-  topics = files.map((f) => parseTopic(join(KNOWLEDGE_DIR, f)));
-}
-topics.sort((a, b) => {
-  const da = a.daysUntil === null ? Infinity : a.daysUntil;
-  const db = b.daysUntil === null ? Infinity : b.daysUntil;
-  return da - db;
-});
-
-// ---------- parse activity log ----------
-
-let activity = [];
-if (existsSync(ACTIVITY_LOG)) {
-  activity = readFileSync(ACTIVITY_LOG, "utf-8")
-    .split(/\r?\n/)
-    .filter(Boolean)
-    .map((l) => JSON.parse(l));
-}
-
-const byDate = new Map();
-for (const a of activity) {
-  byDate.set(a.date, (byDate.get(a.date) || 0) + (a.interactions || 1));
-}
+const topics = loadTopics(ROOT, todayStr);
+const { byDate, totalInteractions, activeDays, streaks } = loadActivity(ROOT, todayStr);
 
 // Build a 53-week x 7-day grid ending on the most recent Saturday >= today
 function buildHeatmapGrid() {
@@ -144,38 +56,6 @@ function buildHeatmapGrid() {
 }
 
 const weeks = buildHeatmapGrid();
-
-const totalInteractions = [...byDate.values()].reduce((a, b) => a + b, 0);
-const activeDays = byDate.size;
-
-function computeStreaks() {
-  const days = [...byDate.keys()].sort();
-  if (days.length === 0) return { current: 0, longest: 0 };
-  const daySet = new Set(days);
-  let longest = 0;
-  let run = 0;
-  let prev = null;
-  for (const d of days) {
-    if (prev) {
-      const diff = (new Date(d) - new Date(prev)) / 86400000;
-      run = diff === 1 ? run + 1 : 1;
-    } else {
-      run = 1;
-    }
-    longest = Math.max(longest, run);
-    prev = d;
-  }
-  // current streak: walk back from today (or yesterday if today has no activity yet)
-  let current = 0;
-  let cursor = new Date(todayStr);
-  if (!daySet.has(todayStr)) cursor.setDate(cursor.getDate() - 1);
-  while (daySet.has(cursor.toISOString().slice(0, 10))) {
-    current++;
-    cursor.setDate(cursor.getDate() - 1);
-  }
-  return { current, longest };
-}
-const streaks = computeStreaks();
 
 // ---------- render ----------
 
@@ -613,5 +493,90 @@ const html = `<!doctype html>
 `;
 
 writeFileSync(OUT, html, "utf-8");
+
+// ---------- Obsidian markdown companion (Dashboard.md at repo root) ----------
+// Plain markdown/tables/wikilinks only — no HTML/iframe, so it renders
+// identically in desktop Obsidian and Obsidian mobile (via the Git plugin)
+// with zero dependency on the artifact's CSP or frame-ancestors policy.
+
+const SPARK_CHARS = ["▁", "▂", "▃", "▄", "▅", "▆", "▇", "█"];
+function sparkline(weeklyTotals) {
+  const max = Math.max(1, ...weeklyTotals);
+  return weeklyTotals
+    .map((n) => SPARK_CHARS[Math.min(SPARK_CHARS.length - 1, Math.floor((n / max) * (SPARK_CHARS.length - 1)))])
+    .join("");
+}
+
+function mdStatusLine(t) {
+  const parts = [];
+  if (t.counts.solid) parts.push(`✅ ${t.counts.solid} solid`);
+  if (t.counts.landed) parts.push(`🟡 ${t.counts.landed} landed`);
+  if (t.counts.frontier) parts.push(`⚪ ${t.counts.frontier} frontier`);
+  if (t.counts.misconception) parts.push(`🔴 ${t.counts.misconception} outstanding misconception${t.counts.misconception === 1 ? "" : "s"}`);
+  return parts.join(" · ") || "no nodes yet";
+}
+
+function mdDueLine(t) {
+  if (t.overdueCount > 0) return `**Overdue ×${t.overdueCount}**`;
+  if (t.nextDue === null) return "No review scheduled";
+  if (t.daysUntil === 0) return "**Due today**";
+  if (t.daysUntil === 1) return "**Due tomorrow**";
+  return `Due in ${t.daysUntil}d — ${t.nextDue}`;
+}
+
+function mdBar(t) {
+  const width = 20;
+  const filled = t.total ? Math.round((t.counts.solid / t.total) * width) : 0;
+  return "`" + "█".repeat(filled) + "░".repeat(width - filled) + "`" + ` ${t.counts.solid}/${t.total} solid`;
+}
+
+const last12WeekTotals = weeks.slice(-12).map((week) => week.reduce((s, d) => s + d.count, 0));
+
+const topicsMd = topics.length
+  ? topics
+      .map(
+        (t) => `### [[${t.slug}]] — ${t.title}
+
+${t.goal ? `*${t.goal}*\n` : ""}
+${mdBar(t)}
+
+${mdStatusLine(t)}
+
+${mdDueLine(t)} · ${t.total} node${t.total === 1 ? "" : "s"} · ${t.horizon || "—"}`
+      )
+      .join("\n\n---\n\n")
+  : "No topics yet — run `/learn <topic>` to start one.";
+
+const dashboardMd = `# Frontier
+
+*Generated ${todayStr}${DASHBOARD_URL ? ` · [full interactive dashboard](${DASHBOARD_URL})` : ""}*
+
+## At a glance
+
+| | |
+|---|---|
+| Topics | ${topics.length} |
+| Solid nodes | ${topics.reduce((s, t) => s + t.counts.solid, 0)} |
+| Landed, unverified | ${topics.reduce((s, t) => s + t.counts.landed, 0)} |
+| Day streak | ${streaks.current} |
+| Interactions (all time) | ${totalInteractions} |
+
+## Topics
+
+${topicsMd}
+
+## Activity
+
+Last 12 weeks: \`${sparkline(last12WeekTotals)}\`
+
+${activeDays} active day${activeDays === 1 ? "" : "s"} · longest streak ${streaks.longest}d${DASHBOARD_URL ? ` · [full GitHub-style heatmap](${DASHBOARD_URL})` : ""}
+
+---
+*Regenerated after every \`/learn\`, \`/review\`, and \`/exam\` session — \`knowledge/*.md\` is the source of truth.*
+`;
+
+writeFileSync(join(ROOT, "Dashboard.md"), dashboardMd, "utf-8");
+
 console.log(`Wrote ${OUT}`);
+console.log(`Wrote ${join(ROOT, "Dashboard.md")}`);
 console.log(`Topics: ${topics.length}, activity days: ${activeDays}, total interactions: ${totalInteractions}`);

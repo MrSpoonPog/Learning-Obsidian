@@ -1,5 +1,17 @@
 {
   "hooks": {
+    "SessionStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node .claude/tools/dashboard/session-start-summary.mjs",
+            "timeout": 15,
+            "statusMessage": "Loading Frontier summary..."
+          }
+        ]
+      }
+    ],
     "SessionEnd": [
       {
         "hooks": [
