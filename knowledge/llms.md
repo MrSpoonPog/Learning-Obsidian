@@ -7,9 +7,9 @@ Retention horizon: **permanent** — standard spacing (+1 day, +1 week, +3 weeks
 
 ## Review queue
 
-- **2026-08-28** (+1 day) — cold-test all `[~]` nodes below, in fresh framings: ntp, hall, ft, win, qkv, score, mh, pos
-- **2026-09-03** (+1 week)
-- **2026-09-17** (+3 weeks)
+- **2026-09-01** — cold re-test (fresh framings again): ntp, hall, win, qkv, score, pos
+- **2026-09-07** (+1 week) — ft, mh (both verified 2026-08-31, first clean delayed pass)
+- **2026-09-17** (+3 weeks) — carries forward for whatever is `[x]` by then
 
 Run `/review llms` when due.
 
@@ -58,20 +58,22 @@ graph TD
 ## Node status
 
 - [x] train — training = adjusting billions of weights by nudging on gap between predicted/actual next token, over huge data (2026-08-27, confident + correct reason)
-- [~] ntp — next-token prediction; repaired from a "search stored text" misconception mid-session, then correctly applied to hallucination immediately after. Not yet cold-verified across a delay.
-- [~] hall — hallucination = plausible next-token prediction has no built-in truth-check; correct + correct reason + fairly sure, but demonstrated in the same session as the ntp repair — needs a delayed, differently-framed re-check.
-- [~] ft — fine-tuning (more weight updates on task data) vs prompting (frozen weights, input-only): correct + correct reasoning in TWO independently-framed checks now (initial probe, and a fresh "lost prompt template" operational scenario 2026-08-27), but self-reported confidence stayed low both times ("just guessing" / "guesstimating"). Real evidence of understanding despite low confidence — flagged for a fresh cold check at +1 day review rather than a third same-session re-probe.
+- [~] ntp — cold-tested 2026-08-31 (new framing: "novel sentence ⇒ must be recombination" scenario). Correct + correct reasoning again, but self-reported "just guessing" — second time confidence hasn't matched accuracy. Not credited yet. Due 2026-09-01.
+- [!] hall — cold-tested 2026-08-31 in a fresh context (fake-citation scenario). Answered "model has a trained incentive to avoid blank answers" — confident (fairly sure), wrong: a **motivation-based misconception**, distinct from the original "search stored text" one. Refuted via bridging from his own correct ntp mechanism (no separate truth-check step exists in token-by-token generation). Due 2026-09-01, different context again.
+- [x] ft — **verified 2026-08-31**: third independently-framed check (JSON-schema support-bot scenario), correct + correct reasoning + **certain** for the first time (prior two passes were correct but low-confidence). Fine-tuning = permanent weight change; prompting = frozen weights, repeated per call. Next check 2026-09-07 (+1 week).
 - [x] tok — solid (2026-08-27, confident + correct reason): tokens become vectors in a learned "meaning space" so similar-usage words land near each other, letting learning transfer between neighbors.
-- [~] win — landed (2026-08-27): self-attention compares every token against every other token in one computation, no window, no distance penalty. Taught expository (he flagged discovery mode wasn't landing) — correct + certain on landing check, not yet cold-verified.
-- [~] qkv — landed (2026-08-27): each token produces Query/Key/Value vectors because relevance ≠ raw similarity (e.g. "it"/"animal"). Correct + correct reason + fairly sure, not yet cold-verified.
-- [~] score — landed (2026-08-27): Query·Key dot product → softmax → attention weights → weighted average of Value vectors. Correct + fairly sure, not yet cold-verified.
-- [~] mh — landed (2026-08-27): several parallel Q/K/V attention computations ("heads"), each able to specialize on a different relationship type, outputs combined. Correct + fairly sure, not yet cold-verified.
-- [~] pos — landed (2026-08-27): unique positional fingerprint added to each token's vector before attention runs, since attention alone is order-blind. Correct + fairly sure, not yet cold-verified.
+- [~] win — cold-tested 2026-08-31 (sliding-window claim scenario). Tier 1 correct (no window; PE ≠ distance penalty) but tier 2 wrong — picked "PE directly penalizes distant scores," a distinct distractor from how it was taught. Treated as a miss despite right answer; retaught the actual mechanism (attention = all-pairs dot product in one step; PE only carries order, not distance). Due 2026-09-01.
+- [~] qkv — cold-tested 2026-08-31 (pronoun-resolution scenario, "The trophy didn't fit in the suitcase..."). Correct + correct reasoning, but "just guessing" — same guess-despite-correct pattern as ntp. Due 2026-09-01.
+- [~] score — cold-tested 2026-08-31, but surfaced a **prerequisite gap first**: he didn't know what softmax itself was (asked directly, mid-quiz, before attempting the question). Taught softmax inline (exponentiate + normalize to a distribution summing to 1) — he then answered the actual diagnostic correctly + correct reasoning + certain, but that doesn't count as a cold pass since it immediately followed the explanation in the same message exchange. Needs a genuine cold re-check. Due 2026-09-01.
+- [x] mh — **verified 2026-08-31**: first cold check (taught 2026-08-27, 4-day delay), fresh framing ("why not one big head instead of several"). Correct + correct reasoning + fairly sure. Next check 2026-09-07 (+1 week).
+- [!] pos — cold-tested 2026-08-31 (word-shuffle scenario). Tier 2 was right (attention itself is a set operation, order-blind) but tier 1 was wrong: believed positional encoding actively *restores/re-sorts* scrambled input back to original order, rather than just blindly tagging whatever token lands in each slot. Confident (fairly sure) → genuine misconception, refuted. Due 2026-09-01, different context again.
 - [ ] rag, emb, agent, ctx, rlhf, und — scoped for later sessions, not today. See researcher brief in session log for misconception distractors when these are taught.
 
 ## Misconceptions log
 
-- [!] ntp — "LLMs generate text by searching stored text for a matching passage" (fairly sure, context: first probe of the session, asked directly "what is an LLM fundamentally doing when it generates text"). Refuted via bridging from his own correct tier-2 answer (token-probability sampling). Re-probe in a different surface context at the +1 day review — do NOT reuse the same "what is it doing" framing.
+- [x] ntp (original) — "LLMs generate text by searching stored text for a matching passage" (fairly sure, context: first probe of the session, asked directly "what is an LLM fundamentally doing when it generates text"). Refuted 2026-08-27. Re-probed 2026-08-31 in a completely different framing (novel-sentence scenario) — did **not** recur; he answered correctly (though as a low-confidence guess). This specific misconception looks resolved; ntp node itself still open pending a confidence-matched pass.
+- [!] hall — "the model has a trained incentive/policy to avoid blank answers, so it invents plausible details rather than a truth-check failing" (fairly sure, context: fake-citation cold re-test, 2026-08-31). A motivation-based misconception, distinct from the ntp one. Refuted by bridging from his own correct ntp mechanism — if it were a policy, explicit "say I don't know" instructions would mostly fix it, and they don't; the real gap is structural (no verification step anywhere in generation). Re-probe in a different context again.
+- [!] pos — "positional encoding actively restores/re-sorts a shuffled sequence back to its original order" (fairly sure, context: word-shuffle cold re-test, 2026-08-31). He correctly held that attention itself is order-blind (tier 2 right) but wrongly modeled PE as a correction step rather than blind per-slot tagging. Refuted 2026-08-31. Re-probe in a different context.
 
 ## Future-session material (from researcher brief, 2026-08-27)
 
