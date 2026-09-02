@@ -1,4 +1,4 @@
-
+yhyyyyy
 # LLMs — how they work / professional AI fluency
 
 Goal: general professional fluency — correct, confident understanding to discuss AI intelligently in work contexts (meetings, product discussions, casual job-interview-adjacent conversation). Not a deep ML-engineering interview.
