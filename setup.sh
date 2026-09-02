@@ -53,7 +53,7 @@ echo "       ok  dependencies installed"
 # ------------------------------------------------------ 5. Verify render
 echo " [5/5] Verifying the render pipeline..."
 rm -f "$VIS/scratch/_smoke_mmd.png" "$VIS/scratch/_smoke_svg.png"
-( cd "$VIS" && npx --yes mmdc -i fixtures/smoke.mmd -o scratch/_smoke_mmd.png -b white -s 2 >/dev/null 2>&1 )
+( cd "$VIS" && npx --yes mmdc -p puppeteer-config.json -i fixtures/smoke.mmd -o scratch/_smoke_mmd.png -b white -s 2 >/dev/null 2>&1 )
 ( cd "$VIS" && node svg2png.mjs fixtures/smoke.svg scratch/_smoke_svg.png 2 >/dev/null 2>&1 )
 if [ ! -f "$VIS/scratch/_smoke_mmd.png" ] || [ ! -f "$VIS/scratch/_smoke_svg.png" ]; then
     echo "       ERROR  render check failed."

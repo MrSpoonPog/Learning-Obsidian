@@ -21,13 +21,13 @@ All paths are relative to the project root (your working directory).
 - **Source file:** `.claude/tools/visual/scratch/<slug>.mmd` — write it with `Write`, revise it with `Edit`.
 - **Render command:**
   ```bash
-  cd .claude/tools/visual && npx mmdc -i scratch/<slug>.mmd -o scratch/<slug>.png -b white -s 2
+  cd .claude/tools/visual && npx mmdc -p puppeteer-config.json -i scratch/<slug>.mmd -o scratch/<slug>.png -b white -s 2
   ```
   Rendering takes ~10-20s (it drives a headless Chrome); allow a generous timeout.
 - **Inspect:** `Read` the produced `.claude/tools/visual/scratch/<slug>.png`.
 - **Publish:** once correct, re-render straight into the viz folder with a unique timestamped name:
   ```bash
-  mkdir -p viz && cd .claude/tools/visual && npx mmdc -i scratch/<slug>.mmd -o "../../../viz/viz-<slug>-$(date +%Y%m%d-%H%M%S).png" -b white -s 2
+  mkdir -p viz && cd .claude/tools/visual && npx mmdc -p puppeteer-config.json -i scratch/<slug>.mmd -o "../../../viz/viz-<slug>-$(date +%Y%m%d-%H%M%S).png" -b white -s 2
   ```
   Then `Read` the published file one last time to confirm it.
 

@@ -12,7 +12,7 @@ if (!input || !output) {
 const scale = Number(scaleArg) || 2;
 
 const svg = await readFile(resolve(input), "utf8");
-const browser = await puppeteer.launch({ headless: true });
+const browser = await puppeteer.launch({ headless: true, args: ["--no-sandbox", "--disable-setuid-sandbox"] });
 try {
   const page = await browser.newPage();
   await page.setViewport({ width: 1200, height: 800, deviceScaleFactor: scale });
